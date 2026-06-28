@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",
