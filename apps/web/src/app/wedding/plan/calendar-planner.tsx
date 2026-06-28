@@ -1,38 +1,38 @@
 "use client";
 
-import { CalendarPlus, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import {
+  CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@repo/ui/components/button";
 
+import { createWeddingEvent, deleteWeddingEvent } from "./actions";
+
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 
-type CalendarEvent = {
+export type CalendarEvent = {
   id: string;
   date: string;
   title: string;
   memo?: string;
 };
 
-const initialEvents: CalendarEvent[] = [
-  {
-    id: "venue-consulting",
-    date: "2026-07-04",
-    title: "예식장 상담",
-  },
-  {
-    id: "dress-tour",
-    date: "2026-07-12",
-    title: "드레스 투어",
-  },
-  {
-    id: "snap-meeting",
-    date: "2026-07-20",
-    title: "스냅 미팅",
-  },
-];
+type CalendarPlannerProps = {
+  coupleId: string | null;
+  initialEvents: CalendarEvent[];
+  setupError: string | null;
+};
 
-export function CalendarPlanner() {
+export function CalendarPlanner({
+  coupleId,
+  initialEvents,
+  setupError,
+}: CalendarPlannerProps) {
   const today = useMemo(() => new Date(), []);
   const [viewDate, setViewDate] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
@@ -41,6 +41,11 @@ export function CalendarPlanner() {
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(today));
   const [title, setTitle] = useState("");
   const [memo, setMemo] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(setupError);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+
+  const canEdit = Boolean(coupleId);
 
   const calendarDays = useMemo(() => {
     const year = viewDate.getFullYear();
@@ -87,27 +92,61 @@ export function CalendarPlanner() {
     setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
   }
 
-  function addEvent() {
+  async function addEvent() {
     const trimmedTitle = title.trim();
 
-    if (!trimmedTitle) {
+    if (!trimmedTitle || !coupleId) {
       return;
     }
 
-    setEvents((current) => [
-      ...current,
-      {
-        id: `${selectedDate}-${Date.now()}`,
-        date: selectedDate,
-        title: trimmedTitle,
-        memo: memo.trim() || undefined,
-      },
-    ]);
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    const result = await createWeddingEvent({
+      coupleId,
+      date: selectedDate,
+      title: trimmedTitle,
+      memo,
+    });
+
+    setIsSaving(false);
+
+    const createdEvent = result.event;
+
+    if (result.error || !createdEvent) {
+      setErrorMessage(
+        result.error
+          ? `일정을 추가하지 못했습니다. ${result.error}`
+          : "일정을 추가하지 못했습니다. 다시 시도해주세요.",
+      );
+      return;
+    }
+
+    setEvents((current) => [...current, createdEvent]);
     setTitle("");
     setMemo("");
   }
 
-  function removeEvent(id: string) {
+  async function removeEvent(id: string) {
+    if (!coupleId) {
+      return;
+    }
+
+    setDeletingEventId(id);
+    setErrorMessage(null);
+
+    const result = await deleteWeddingEvent({
+      coupleId,
+      eventId: id,
+    });
+
+    setDeletingEventId(null);
+
+    if (result.error) {
+      setErrorMessage(`일정을 삭제하지 못했습니다. ${result.error}`);
+      return;
+    }
+
     setEvents((current) => current.filter((event) => event.id !== id));
   }
 
@@ -189,7 +228,7 @@ export function CalendarPlanner() {
               <div className="mt-2 space-y-1">
                 {day.events.map((event) => (
                   <div
-                    key={event.title}
+                    key={event.id}
                     className="bg-secondary text-secondary-foreground truncate rounded-sm px-2 py-1 text-xs"
                   >
                     {event.title}
@@ -203,6 +242,18 @@ export function CalendarPlanner() {
 
       <div className="border-border grid gap-4 rounded-md border p-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-3">
+          {errorMessage ? (
+            <div className="border-destructive/30 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          {!coupleId ? (
+            <div className="border-border bg-muted/20 text-muted-foreground rounded-md border px-3 py-2 text-sm">
+              커플 정보가 준비되면 일정을 추가하거나 삭제할 수 있습니다.
+            </div>
+          ) : null}
+
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold tracking-normal">
@@ -231,10 +282,12 @@ export function CalendarPlanner() {
                   </div>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => removeEvent(event.id)}
+                    disabled={!canEdit || deletingEventId === event.id}
                   >
-                    삭제
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    <span className="sr-only">삭제</span>
                   </Button>
                 </div>
               ))}
@@ -250,7 +303,7 @@ export function CalendarPlanner() {
           className="bg-muted/20 space-y-3 rounded-md p-4"
           onSubmit={(event) => {
             event.preventDefault();
-            addEvent();
+            void addEvent();
           }}
         >
           <div className="space-y-1">
@@ -275,6 +328,7 @@ export function CalendarPlanner() {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="예: 청첩장 샘플 확인"
+              disabled={!canEdit || isSaving}
               className="border-input bg-background focus-visible:ring-ring/50 h-10 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px]"
             />
           </div>
@@ -289,13 +343,18 @@ export function CalendarPlanner() {
               onChange={(event) => setMemo(event.target.value)}
               placeholder="필요한 내용을 적어두세요."
               rows={3}
+              disabled={!canEdit || isSaving}
               className="border-input bg-background focus-visible:ring-ring/50 min-h-24 w-full resize-none rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={!title.trim()}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!canEdit || !title.trim() || isSaving}
+          >
             <Plus className="size-4" aria-hidden="true" />
-            일정 추가
+            {isSaving ? "추가 중" : "일정 추가"}
           </Button>
         </form>
       </div>

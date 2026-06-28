@@ -4,6 +4,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
 export async function updateSession(request: NextRequest) {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return NextResponse.next({
+      request,
+    });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
