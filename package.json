@@ -1,0 +1,21 @@
+{
+  "name": "wang-bang",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "prettier": "latest",
+    "prettier-plugin-tailwindcss": "latest",
+    "turbo": "latest",
+    "typescript": "latest"
+  }
+}
