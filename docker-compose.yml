@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: wangbanghouse-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: wangbanghouse
+      POSTGRES_USER: wangbanghouse
+      POSTGRES_PASSWORD: wangbanghouse_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

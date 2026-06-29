@@ -6,7 +6,8 @@ import { updateSession } from "@/lib/supabase/middleware";
 export async function proxy(request: NextRequest) {
   const accessPassword = process.env.APP_ACCESS_PASSWORD;
   const pathname = request.nextUrl.pathname;
-  const isAccessRoute = pathname === "/access" || pathname.startsWith("/access/");
+  const isAccessRoute =
+    pathname === "/access" || pathname.startsWith("/access/");
 
   if (accessPassword) {
     const hasAccess =

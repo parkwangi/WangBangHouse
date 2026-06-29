@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import {
   Archive,
   ClipboardList,
+  Files,
   Heart,
   Home,
   LayoutDashboard,
   Settings,
+  Store,
   WalletCards,
 } from "lucide-react";
 
@@ -24,9 +26,19 @@ const weddingMenuItems = [
     icon: ClipboardList,
   },
   {
-    title: "예산표",
+    title: "Budget",
     href: "/wedding/budget",
     icon: WalletCards,
+  },
+  {
+    title: "Vendors",
+    href: "/wedding/vendors",
+    icon: Store,
+  },
+  {
+    title: "Documents",
+    href: "/wedding/documents",
+    icon: Files,
   },
 ];
 
@@ -43,13 +55,13 @@ const menuItems = [
     children: weddingMenuItems,
   },
   {
-    title: "Arachive",
-    href: "/arachive",
+    title: "Archive",
+    href: "/archive",
     icon: Archive,
   },
   {
-    title: "Setting",
-    href: "/setting",
+    title: "Settings",
+    href: "/settings",
     icon: Settings,
   },
 ];

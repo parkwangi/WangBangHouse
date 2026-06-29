@@ -7,20 +7,32 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest --passWithNoTests"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
     "@repo/ui": "workspace:*",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
+    "bowser": "^2.14.1",
+    "dayjs": "^1.11.21",
     "lucide-react": "latest",
     "next": "latest",
+    "pg": "^8.22.0",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "react-hook-form": "^7.80.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/prettier-config": "workspace:*",
+    "@repo/tailwind-config": "workspace:*",
     "@tailwindcss/postcss": "latest",
     "@types/node": "latest",
+    "@types/pg": "^8.20.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "^9.39.1",
