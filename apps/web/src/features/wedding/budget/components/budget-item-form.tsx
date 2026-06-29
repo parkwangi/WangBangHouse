@@ -14,11 +14,7 @@ import {
   type CreateBudgetItemInput,
 } from "@/features/wedding/budget/schemas/budget-item.schema";
 
-type BudgetItemFormProps = {
-  weddingProjectId: string | null;
-};
-
-export function BudgetItemForm({ weddingProjectId }: BudgetItemFormProps) {
+export function BudgetItemForm() {
   const [isPending, startTransition] = useTransition();
   const [formMessage, setFormMessage] = useState<string | null>(null);
 
@@ -40,15 +36,10 @@ export function BudgetItemForm({ weddingProjectId }: BudgetItemFormProps) {
   });
 
   function onSubmit(input: CreateBudgetItemInput) {
-    if (!weddingProjectId) {
-      setFormMessage("DEV_WEDDING_PROJECT_ID를 먼저 설정해주세요.");
-      return;
-    }
-
     setFormMessage(null);
 
     startTransition(async () => {
-      const result = await createBudgetItemAction(weddingProjectId, input);
+      const result = await createBudgetItemAction(input);
 
       if (!result.ok) {
         setFormMessage(result.message ?? "예산 항목을 추가하지 못했습니다.");
@@ -146,7 +137,7 @@ export function BudgetItemForm({ weddingProjectId }: BudgetItemFormProps) {
       ) : null}
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isPending || !weddingProjectId}>
+        <Button type="submit" disabled={isPending}>
           <Plus className="size-4" aria-hidden="true" />
           {isPending ? "추가 중" : "예산 항목 추가"}
         </Button>

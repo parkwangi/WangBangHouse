@@ -1,7 +1,6 @@
 import { VendorsDesktopPage } from "@/features/wedding/vendors/components/desktop-page";
 import { VendorsMobilePage } from "@/features/wedding/vendors/components/mobile-page";
 import { getVendors } from "@/features/wedding/vendors/repositories/vendor.repository";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 import { isMobileDevice } from "@/server/device/is-mobile-device";
 
 import type { Vendor } from "@/features/wedding/vendors/types";
@@ -26,8 +25,7 @@ export default async function VendorsPage() {
 
 async function getVendorsData(): Promise<VendorsData> {
   try {
-    const householdId = await getCurrentHouseholdId();
-    const vendors = await getVendors({ householdId });
+    const vendors = await getVendors();
 
     return {
       vendors,

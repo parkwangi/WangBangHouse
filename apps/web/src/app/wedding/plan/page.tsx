@@ -1,15 +1,12 @@
 import { WeddingPlanDesktopPage } from "@/features/wedding/plan/components/desktop-page";
 import { WeddingPlanMobilePage } from "@/features/wedding/plan/components/mobile-page";
-import { getWeddingTasks } from "@/features/wedding/plan/repositories/task.repository";
-import { getCurrentWeddingProjectId } from "@/features/wedding/shared/server/get-current-wedding-project";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
+import { getWeddingScheduleItems } from "@/features/wedding/plan/repositories/schedule-item.repository";
 import { isMobileDevice } from "@/server/device/is-mobile-device";
 
-import type { WeddingTask } from "@/features/wedding/plan/types";
+import type { WeddingScheduleItem } from "@/features/wedding/plan/types";
 
 type WeddingPlanData = {
-  tasks: WeddingTask[];
-  weddingProjectId: string | null;
+  tasks: WeddingScheduleItem[];
   setupError: string | null;
 };
 
@@ -28,25 +25,15 @@ export default async function WeddingPlanPage() {
 
 async function getWeddingPlanData(): Promise<WeddingPlanData> {
   try {
-    const [householdId, weddingProjectId] = await Promise.all([
-      getCurrentHouseholdId(),
-      getCurrentWeddingProjectId(),
-    ]);
-
-    const tasks = await getWeddingTasks({
-      householdId,
-      weddingProjectId,
-    });
+    const tasks = await getWeddingScheduleItems();
 
     return {
       tasks,
-      weddingProjectId,
       setupError: null,
     };
   } catch (error) {
     return {
       tasks: [],
-      weddingProjectId: null,
       setupError:
         error instanceof Error
           ? error.message

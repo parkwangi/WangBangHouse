@@ -1,6 +1,5 @@
 create table documents (
   id uuid primary key default gen_random_uuid(),
-  household_id uuid not null references households(id) on delete cascade,
   vendor_id uuid references vendors(id) on delete set null,
   related_type text not null,
   related_id uuid,
@@ -16,11 +15,8 @@ create table documents (
   updated_at timestamptz not null default now(),
 
   constraint documents_storage_provider_check
-    check (storage_provider in ('local', 's3', 'r2', 'supabase'))
+    check (storage_provider in ('local', 's3', 'r2'))
 );
-
-create index documents_household_id_idx
-  on documents (household_id);
 
 create index documents_vendor_id_idx
   on documents (vendor_id);

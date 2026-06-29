@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { CheckCircle2, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
@@ -24,21 +25,22 @@ import {
 } from "@repo/ui/components/dialog";
 import { Input } from "@repo/ui/components/input";
 import { Textarea } from "@repo/ui/components/textarea";
+import { cn } from "@repo/ui/lib/utils";
 
-import { createWeddingTaskAction } from "@/features/wedding/plan/actions/create-task.action";
-import { deleteWeddingTaskAction } from "@/features/wedding/plan/actions/delete-task.action";
+import { createWeddingScheduleItemAction } from "@/features/wedding/plan/actions/create-schedule-item.action";
+import { deleteWeddingScheduleItemAction } from "@/features/wedding/plan/actions/delete-schedule-item.action";
 import {
-  createWeddingTaskSchema,
-  type CreateWeddingTaskFormInput,
-  type CreateWeddingTaskInput,
-} from "@/features/wedding/plan/schemas/task.schema";
+  createWeddingScheduleItemSchema,
+  type CreateWeddingScheduleItemFormInput,
+  type CreateWeddingScheduleItemInput,
+} from "@/features/wedding/plan/schemas/schedule-item.schema";
 import {
   dayjs,
   formatDateKey,
   formatReadableDate,
 } from "@/features/wedding/shared/date/date-format";
 
-import type { WeddingTask } from "@/features/wedding/plan/types";
+import type { WeddingScheduleItem } from "@/features/wedding/plan/types";
 
 const weekdayLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -50,29 +52,105 @@ type CalendarDayButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 type WeddingPlanCalendarPageProps = {
-  tasks: WeddingTask[];
-  weddingProjectId: string | null;
+  tasks: WeddingScheduleItem[];
   setupError: string | null;
   compact?: boolean;
 };
 
+type ToastState = {
+  id: number;
+  message: string;
+};
+
+type CalendarHoliday = {
+  name: string;
+};
+
+type HolidaysApiResponse = {
+  holidays?: Array<{
+    date: string;
+    name: string;
+  }>;
+};
+
 export function WeddingPlanCalendarPage({
   tasks,
-  weddingProjectId,
   setupError,
   compact = false,
 }: WeddingPlanCalendarPageProps) {
+  const router = useRouter();
   const today = useMemo(() => dayjs(), []);
+  const requestedHolidayYearsRef = useRef<Set<number>>(new Set());
+  const [createdTasks, setCreatedTasks] = useState<WeddingScheduleItem[]>([]);
+  const [deletedTaskIds, setDeletedTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [holidaysByDate, setHolidaysByDate] = useState<
+    Map<string, CalendarHoliday>
+  >(() => new Map());
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(today));
   const [calendarMonth, setCalendarMonth] = useState(() => today.toDate());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const calendarYear = dayjs(calendarMonth).year();
 
-  const tasksByDate = useMemo(() => groupTasksByDate(tasks), [tasks]);
-  const selectedTasks = tasksByDate.get(selectedDate) ?? [];
-  const scheduledDates = useMemo(
-    () => Array.from(tasksByDate.keys(), (dateKey) => dayjs(dateKey).toDate()),
-    [tasksByDate],
+  const visibleTasks = useMemo(() => {
+    const serverTaskIds = new Set(tasks.map((task) => task.id));
+    const serverTasks = tasks.filter((task) => !deletedTaskIds.has(task.id));
+    const localCreatedTasks = createdTasks.filter(
+      (task) => !serverTaskIds.has(task.id) && !deletedTaskIds.has(task.id),
+    );
+
+    return [...serverTasks, ...localCreatedTasks];
+  }, [createdTasks, deletedTaskIds, tasks]);
+
+  const tasksByDate = useMemo(
+    () => groupTasksByDate(visibleTasks),
+    [visibleTasks],
   );
+  const selectedTasks = tasksByDate.get(selectedDate) ?? [];
+
+  useEffect(() => {
+    if (requestedHolidayYearsRef.current.has(calendarYear)) {
+      return;
+    }
+
+    requestedHolidayYearsRef.current.add(calendarYear);
+
+    const controller = new AbortController();
+
+    async function loadHolidays() {
+      try {
+        const response = await fetch(`/api/wedding/holidays?year=${calendarYear}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error("공휴일 정보를 불러오지 못했습니다.");
+        }
+
+        const data = (await response.json()) as HolidaysApiResponse;
+
+        setHolidaysByDate((currentHolidays) => {
+          const nextHolidays = new Map(currentHolidays);
+
+          for (const holiday of data.holidays ?? []) {
+            nextHolidays.set(holiday.date, { name: holiday.name });
+          }
+
+          return nextHolidays;
+        });
+      } catch {
+        if (!controller.signal.aborted) {
+          requestedHolidayYearsRef.current.delete(calendarYear);
+        }
+      }
+    }
+
+    void loadHolidays();
+
+    return () => controller.abort();
+  }, [calendarYear]);
 
   function selectDate(date: Date) {
     const dateKey = formatDateKey(dayjs(date));
@@ -91,6 +169,13 @@ export function WeddingPlanCalendarPage({
 
     setSelectedDate(formatDateKey(dayjs(todayDate)));
     setCalendarMonth(todayDate);
+  }
+
+  function showToast(message: string) {
+    setToast({
+      id: Date.now(),
+      message,
+    });
   }
 
   return (
@@ -127,7 +212,7 @@ export function WeddingPlanCalendarPage({
           <Card className="gap-4 py-5">
             <CardHeader className="px-5">
               <CardTitle>캘린더</CardTitle>
-              <CardDescription>{tasks.length}개 일정</CardDescription>
+              <CardDescription>{visibleTasks.length}개 일정</CardDescription>
             </CardHeader>
             <CardContent className="px-5">
               <Calendar
@@ -142,11 +227,6 @@ export function WeddingPlanCalendarPage({
                   formatWeekdayName: (date) =>
                     weekdayLabels[date.getDay()] ?? "",
                 }}
-                modifiers={{ hasTasks: scheduledDates }}
-                modifiersClassNames={{
-                  hasTasks:
-                    "after:bg-primary after:absolute after:bottom-2 after:left-1/2 after:size-1.5 after:-translate-x-1/2 after:rounded-full",
-                }}
                 className="w-full p-0"
                 classNames={{
                   root: "w-full",
@@ -158,15 +238,20 @@ export function WeddingPlanCalendarPage({
                   button_previous: "size-10",
                   button_next: "size-10",
                   month_grid: "w-full",
-                  weekday: "h-10 text-sm",
-                  week: "mt-2 flex w-full gap-1",
-                  day: "h-24 flex-1 sm:h-28 lg:h-32",
+                  weekday:
+                    "h-10 text-sm first:text-red-600 last:text-blue-600 dark:first:text-red-400 dark:last:text-blue-400",
+                  week: "flex w-full",
+                  day: "border-border -ml-px -mt-px h-24 flex-1 border sm:h-28 lg:h-32",
                   day_button:
-                    "h-full w-full items-start rounded-md p-2 text-left text-base font-medium sm:text-lg aria-selected:hover:!bg-background aria-selected:hover:!text-foreground aria-selected:hover:!ring-2 aria-selected:hover:!ring-ring",
+                    "!flex h-full w-full !flex-col !items-start !justify-start rounded-md p-2 text-left text-base font-medium sm:text-lg aria-selected:hover:!bg-background aria-selected:hover:!text-foreground aria-selected:hover:!ring-2 aria-selected:hover:!ring-ring",
                 }}
                 components={{
                   DayButton: (props) => (
-                    <CalendarDayButton {...props} tasksByDate={tasksByDate} />
+                    <CalendarDayButton
+                      {...props}
+                      holidaysByDate={holidaysByDate}
+                      tasksByDate={tasksByDate}
+                    />
                   ),
                 }}
               />
@@ -205,29 +290,89 @@ export function WeddingPlanCalendarPage({
         onOpenChange={setIsDialogOpen}
         selectedDate={selectedDate}
         tasks={selectedTasks}
-        weddingProjectId={weddingProjectId}
         disabled={Boolean(setupError)}
+        onTaskCreated={(task) => {
+          setDeletedTaskIds((currentTaskIds) => {
+            const nextTaskIds = new Set(currentTaskIds);
+            nextTaskIds.delete(task.id);
+            return nextTaskIds;
+          });
+          setCreatedTasks((currentTasks) => [
+            ...currentTasks.filter((currentTask) => currentTask.id !== task.id),
+            task,
+          ]);
+          setIsDialogOpen(false);
+          router.refresh();
+          showToast("일정이 추가되었습니다.");
+        }}
+        onTaskDeleted={(taskId) => {
+          setCreatedTasks((currentTasks) =>
+            currentTasks.filter((currentTask) => currentTask.id !== taskId),
+          );
+          setDeletedTaskIds((currentTaskIds) => {
+            const nextTaskIds = new Set(currentTaskIds);
+            nextTaskIds.add(taskId);
+            return nextTaskIds;
+          });
+          setIsDialogOpen(false);
+          router.refresh();
+          showToast("일정이 삭제되었습니다.");
+        }}
       />
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </main>
   );
 }
 
 function CalendarDayButton({
   day,
+  holidaysByDate,
   tasksByDate,
   children,
   className,
   ...props
 }: CalendarDayButtonProps & {
-  tasksByDate: Map<string, WeddingTask[]>;
+  holidaysByDate: Map<string, CalendarHoliday>;
+  tasksByDate: Map<string, WeddingScheduleItem[]>;
 }) {
-  const dateTasks = tasksByDate.get(formatDateKey(dayjs(day.date))) ?? [];
+  const dateKey = formatDateKey(dayjs(day.date));
+  const dateTasks = tasksByDate.get(dateKey) ?? [];
+  const holiday = holidaysByDate.get(dateKey);
+  const dayOfWeek = day.date.getDay();
+  const isSunday = dayOfWeek === 0;
+  const isSaturday = dayOfWeek === 6;
+  const isSelected =
+    props["aria-selected"] === true || props["aria-selected"] === "true";
 
   return (
     <button type="button" className={className} {...props}>
-      <span>{children}</span>
+      <span
+        className={cn(
+          isSelected
+            ? "text-primary-foreground"
+            : holiday || isSunday
+            ? "text-red-600 dark:text-red-400"
+            : isSaturday
+              ? "text-blue-600 dark:text-blue-400"
+              : undefined,
+        )}
+      >
+        {children}
+      </span>
+      {holiday ? (
+        <span
+          className={cn(
+            "mt-1 block w-full truncate text-[11px] leading-4 font-medium",
+            isSelected
+              ? "text-primary-foreground/90"
+              : "text-red-600 dark:text-red-400",
+          )}
+        >
+          {holiday.name}
+        </span>
+      ) : null}
       {dateTasks.length > 0 ? (
-        <span className="mt-2 flex w-full flex-col gap-1 overflow-hidden">
+        <span className="mt-1 flex w-full flex-col gap-1 overflow-hidden">
           {dateTasks.slice(0, 2).map((task) => (
             <span
               key={task.id}
@@ -252,15 +397,17 @@ function TaskDialog({
   onOpenChange,
   selectedDate,
   tasks,
-  weddingProjectId,
   disabled,
+  onTaskCreated,
+  onTaskDeleted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedDate: string;
-  tasks: WeddingTask[];
-  weddingProjectId: string | null;
+  tasks: WeddingScheduleItem[];
   disabled: boolean;
+  onTaskCreated: (task: WeddingScheduleItem) => void;
+  onTaskDeleted: (taskId: string) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -276,7 +423,13 @@ function TaskDialog({
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">일정</h3>
             {tasks.length > 0 ? (
-              tasks.map((task) => <TaskItem key={task.id} task={task} />)
+              tasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onTaskDeleted={onTaskDeleted}
+                />
+              ))
             ) : (
               <p className="text-muted-foreground rounded-md border border-dashed p-4 text-sm">
                 선택한 날짜에 등록된 일정이 없습니다.
@@ -287,8 +440,8 @@ function TaskDialog({
           <CalendarEventForm
             key={selectedDate}
             selectedDate={selectedDate}
-            weddingProjectId={weddingProjectId}
             disabled={disabled}
+            onTaskCreated={onTaskCreated}
           />
         </div>
       </DialogContent>
@@ -296,7 +449,13 @@ function TaskDialog({
   );
 }
 
-function TaskItem({ task }: { task: WeddingTask }) {
+function TaskItem({
+  task,
+  onTaskDeleted,
+}: {
+  task: WeddingScheduleItem;
+  onTaskDeleted: (taskId: string) => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -308,11 +467,14 @@ function TaskItem({ task }: { task: WeddingTask }) {
     setMessage(null);
 
     startTransition(async () => {
-      const result = await deleteWeddingTaskAction(task.id);
+      const result = await deleteWeddingScheduleItemAction(task.id);
 
       if (!result.ok) {
         setMessage(result.message ?? "일정을 삭제하지 못했습니다.");
+        return;
       }
+
+      onTaskDeleted(task.id);
     });
   }
 
@@ -346,53 +508,54 @@ function TaskItem({ task }: { task: WeddingTask }) {
 
 function CalendarEventForm({
   selectedDate,
-  weddingProjectId,
   disabled,
+  onTaskCreated,
 }: {
   selectedDate: string;
-  weddingProjectId: string | null;
   disabled: boolean;
+  onTaskCreated: (task: WeddingScheduleItem) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [formMessage, setFormMessage] = useState<string | null>(null);
 
   const form = useForm<
-    CreateWeddingTaskFormInput,
+    CreateWeddingScheduleItemFormInput,
     unknown,
-    CreateWeddingTaskInput
+    CreateWeddingScheduleItemInput
   >({
-    resolver: zodResolver(createWeddingTaskSchema),
+    resolver: zodResolver(createWeddingScheduleItemSchema),
     defaultValues: {
       title: "",
       category: "일정",
-      dueDate: selectedDate,
+      scheduledDate: selectedDate,
       memo: "",
     },
   });
 
-  function onSubmit(input: CreateWeddingTaskInput) {
-    if (!weddingProjectId) {
-      setFormMessage("DEV_WEDDING_PROJECT_ID를 먼저 설정해주세요.");
-      return;
-    }
-
+  function onSubmit(input: CreateWeddingScheduleItemInput) {
     setFormMessage(null);
 
     startTransition(async () => {
-      const result = await createWeddingTaskAction(weddingProjectId, input);
+      const result = await createWeddingScheduleItemAction(input);
 
       if (!result.ok) {
         setFormMessage(result.message ?? "일정을 추가하지 못했습니다.");
         return;
       }
 
+      if (!result.data) {
+        setFormMessage("생성된 일정을 불러오지 못했습니다.");
+        return;
+      }
+
       form.reset({
         title: "",
         category: "일정",
-        dueDate: selectedDate,
+        scheduledDate: selectedDate,
         memo: "",
       });
       setFormMessage(null);
+      onTaskCreated(result.data);
     });
   }
 
@@ -405,7 +568,7 @@ function CalendarEventForm({
         </p>
       </div>
 
-      <input type="hidden" {...form.register("dueDate")} />
+      <input type="hidden" {...form.register("scheduledDate")} />
 
       <Field label="일정명" error={form.formState.errors.title?.message}>
         <Input
@@ -440,7 +603,7 @@ function CalendarEventForm({
       <Button
         type="submit"
         className="w-full"
-        disabled={disabled || isPending || !weddingProjectId}
+        disabled={disabled || isPending}
       >
         <Plus className="size-4" aria-hidden="true" />
         {isPending ? "추가 중" : "일정 추가"}
@@ -475,17 +638,49 @@ function SetupNotice({ message }: { message: string }) {
   );
 }
 
-function groupTasksByDate(tasks: WeddingTask[]) {
-  const map = new Map<string, WeddingTask[]>();
+function Toast({
+  toast,
+  onClose,
+}: {
+  toast: ToastState | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(onClose, 2500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [toast, onClose]);
+
+  if (!toast) {
+    return null;
+  }
+
+  return (
+    <div className="fixed right-4 bottom-20 z-50 md:bottom-4" role="status">
+      <div className="bg-foreground text-background flex items-center gap-2 rounded-md px-4 py-3 text-sm font-medium shadow-lg">
+        <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+        <span>{toast.message}</span>
+      </div>
+    </div>
+  );
+}
+
+function groupTasksByDate(tasks: WeddingScheduleItem[]) {
+  const map = new Map<string, WeddingScheduleItem[]>();
 
   for (const task of tasks) {
-    if (!task.dueDate) {
+    if (!task.scheduledDate) {
       continue;
     }
 
-    const existing = map.get(task.dueDate) ?? [];
+    const dateKey = formatDateKey(task.scheduledDate);
+    const existing = map.get(dateKey) ?? [];
     existing.push(task);
-    map.set(task.dueDate, existing);
+    map.set(dateKey, existing);
   }
 
   return map;

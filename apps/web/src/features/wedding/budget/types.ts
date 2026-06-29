@@ -1,6 +1,5 @@
 export type BudgetItem = {
   id: string;
-  weddingProjectId: string;
   vendorId: string | null;
   category: string;
   title: string;

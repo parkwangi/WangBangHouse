@@ -1,8 +1,6 @@
 import { WeddingBudgetDesktopPage } from "@/features/wedding/budget/components/desktop-page";
 import { WeddingBudgetMobilePage } from "@/features/wedding/budget/components/mobile-page";
 import { getWeddingBudgetPageData } from "@/features/wedding/budget/repositories/budget.repository";
-import { getCurrentWeddingProjectId } from "@/features/wedding/shared/server/get-current-wedding-project";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 import { isMobileDevice } from "@/server/device/is-mobile-device";
 
 import type {
@@ -13,7 +11,6 @@ import type {
 type WeddingBudgetData = {
   items: BudgetItem[];
   summary: BudgetSummary;
-  weddingProjectId: string | null;
   setupError: string | null;
 };
 
@@ -39,26 +36,16 @@ export default async function WeddingBudgetPage() {
 
 async function getWeddingBudgetData(): Promise<WeddingBudgetData> {
   try {
-    const [householdId, weddingProjectId] = await Promise.all([
-      getCurrentHouseholdId(),
-      getCurrentWeddingProjectId(),
-    ]);
-
-    const data = await getWeddingBudgetPageData({
-      householdId,
-      weddingProjectId,
-    });
+    const data = await getWeddingBudgetPageData();
 
     return {
       ...data,
-      weddingProjectId,
       setupError: null,
     };
   } catch (error) {
     return {
       items: [],
       summary: emptySummary,
-      weddingProjectId: null,
       setupError:
         error instanceof Error
           ? error.message

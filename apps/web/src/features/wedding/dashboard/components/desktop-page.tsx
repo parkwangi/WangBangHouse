@@ -23,14 +23,6 @@ export function DashboardDesktopPage({
               결혼 준비 현황을 한 화면에서 확인합니다.
             </p>
           </div>
-
-          <div className="rounded-md border px-4 py-3 text-right">
-            <p className="text-muted-foreground text-xs">Wedding Day</p>
-            <p className="text-xl font-semibold">{formatDday(data.dday)}</p>
-            <p className="text-muted-foreground text-xs">
-              {formatDate(data.weddingDate)}
-            </p>
-          </div>
         </header>
 
         {setupError ? <SetupNotice message={setupError} /> : null}
@@ -55,26 +47,37 @@ export function DashboardDesktopPage({
         </section>
 
         <section className="grid gap-3 md:grid-cols-3">
-          <Metric label="미완료 할 일" value={`${data.incompleteTaskCount}`} />
+          <Metric
+            label="다가오는 일정"
+            value={`${data.upcomingScheduleItemCount}`}
+          />
           <Metric label="업체" value={`${data.vendorCount}`} />
           <Metric label="문서" value={`${data.documentCount}`} />
         </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
-          <Panel title="다가오는 할 일">
-            {data.upcomingTasks.length > 0 ? (
+          <Panel title="다가오는 일정 D-day">
+            {data.upcomingScheduleItems.length > 0 ? (
               <div className="space-y-2">
-                {data.upcomingTasks.map((task) => (
-                  <div key={task.id} className="bg-muted/30 rounded-md p-3">
-                    <p className="font-medium">{task.title}</p>
-                    <p className="text-muted-foreground text-sm">
-                      {task.category} · {formatDate(task.dueDate)}
+                {data.upcomingScheduleItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-muted/30 flex items-start justify-between gap-3 rounded-md p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{item.title}</p>
+                      <p className="text-muted-foreground text-sm">
+                        {item.category} · {formatDate(item.scheduledDate)}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold">
+                      {formatDday(item.dday)}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <EmptyText>다가오는 할 일이 없습니다.</EmptyText>
+              <EmptyText>다가오는 일정이 없습니다.</EmptyText>
             )}
           </Panel>
 
@@ -164,7 +167,7 @@ function formatDate(date: string | null) {
 
 function formatDday(dday: number | null) {
   if (dday === null) {
-    return "미정";
+    return "-";
   }
 
   if (dday === 0) {

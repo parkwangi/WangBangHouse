@@ -1,10 +1,9 @@
 import { WeddingPlanCalendarPage } from "@/features/wedding/plan/components/calendar-page";
 
-import type { WeddingTask } from "@/features/wedding/plan/types";
+import type { WeddingScheduleItem } from "@/features/wedding/plan/types";
 
 type WeddingPlanMobilePageProps = {
-  tasks: WeddingTask[];
-  weddingProjectId: string | null;
+  tasks: WeddingScheduleItem[];
   setupError: string | null;
 };
 

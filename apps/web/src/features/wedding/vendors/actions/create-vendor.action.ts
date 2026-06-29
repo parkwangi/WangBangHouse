@@ -7,7 +7,6 @@ import {
   createVendorSchema,
   type CreateVendorInput,
 } from "@/features/wedding/vendors/schemas/vendor.schema";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 
 import type { ActionResult } from "@/features/wedding/shared/actions/action-result";
 
@@ -25,12 +24,7 @@ export async function createVendorAction(
   }
 
   try {
-    const householdId = await getCurrentHouseholdId();
-
-    await createVendor({
-      householdId,
-      ...parsed.data,
-    });
+    await createVendor(parsed.data);
 
     revalidatePath("/wedding/vendors");
     revalidatePath("/wedding/budget");

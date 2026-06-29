@@ -33,8 +33,7 @@ export function readEnvFile(path) {
 export function getDatabaseUrl(rootDir) {
   return (
     process.env.DATABASE_URL ??
-    readEnvFile(`${rootDir}/apps/web/.env.local`).DATABASE_URL ??
-    readEnvFile(`${rootDir}/apps/web/.env.example`).DATABASE_URL
+    readEnvFile(`${rootDir}/apps/web/.env.local`).DATABASE_URL
   );
 }
 

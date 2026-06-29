@@ -1,8 +1,6 @@
 import { DashboardDesktopPage } from "@/features/wedding/dashboard/components/desktop-page";
 import { DashboardMobilePage } from "@/features/wedding/dashboard/components/mobile-page";
 import { getWeddingDashboardData } from "@/features/wedding/dashboard/repositories/dashboard.repository";
-import { getCurrentWeddingProjectId } from "@/features/wedding/shared/server/get-current-wedding-project";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 import { isMobileDevice } from "@/server/device/is-mobile-device";
 
 import type { WeddingDashboardData } from "@/features/wedding/dashboard/types";
@@ -13,17 +11,14 @@ type DashboardPageData = {
 };
 
 const emptyDashboardData: WeddingDashboardData = {
-  weddingDate: null,
-  venueName: null,
-  dday: null,
   totalEstimatedAmount: 0,
   totalContractedAmount: 0,
   totalPaidAmount: 0,
   remainingAmount: 0,
-  incompleteTaskCount: 0,
+  upcomingScheduleItemCount: 0,
   vendorCount: 0,
   documentCount: 0,
-  upcomingTasks: [],
+  upcomingScheduleItems: [],
   upcomingPayments: [],
 };
 
@@ -42,15 +37,7 @@ export default async function WeddingDashboardPage() {
 
 async function getDashboardPageData(): Promise<DashboardPageData> {
   try {
-    const [householdId, weddingProjectId] = await Promise.all([
-      getCurrentHouseholdId(),
-      getCurrentWeddingProjectId(),
-    ]);
-
-    const data = await getWeddingDashboardData({
-      householdId,
-      weddingProjectId,
-    });
+    const data = await getWeddingDashboardData();
 
     return {
       data,

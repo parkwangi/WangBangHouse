@@ -1,12 +1,8 @@
-import type { WeddingTaskStatus } from "@/features/wedding/plan/schemas/task.schema";
-
-export type WeddingTask = {
+export type WeddingScheduleItem = {
   id: string;
-  weddingProjectId: string;
   title: string;
   category: string;
-  dueDate: string | null;
-  status: WeddingTaskStatus;
+  scheduledDate: string | null;
   memo: string | null;
   createdAt: string;
   updatedAt: string;

@@ -7,12 +7,10 @@ import {
   createBudgetItemSchema,
   type CreateBudgetItemInput,
 } from "@/features/wedding/budget/schemas/budget-item.schema";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 
 import type { ActionResult } from "@/features/wedding/shared/actions/action-result";
 
 export async function createBudgetItemAction(
-  weddingProjectId: string,
   input: CreateBudgetItemInput,
 ): Promise<ActionResult> {
   const parsed = createBudgetItemSchema.safeParse(input);
@@ -26,13 +24,7 @@ export async function createBudgetItemAction(
   }
 
   try {
-    const householdId = await getCurrentHouseholdId();
-
-    await createBudgetItem({
-      householdId,
-      weddingProjectId,
-      ...parsed.data,
-    });
+    await createBudgetItem(parsed.data);
 
     revalidatePath("/wedding/budget");
 

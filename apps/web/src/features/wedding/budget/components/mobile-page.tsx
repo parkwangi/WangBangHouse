@@ -11,14 +11,12 @@ import type {
 type WeddingBudgetMobilePageProps = {
   items: BudgetItem[];
   summary: BudgetSummary;
-  weddingProjectId: string | null;
   setupError: string | null;
 };
 
 export function WeddingBudgetMobilePage({
   items,
   summary,
-  weddingProjectId,
   setupError,
 }: WeddingBudgetMobilePageProps) {
   return (
@@ -40,7 +38,7 @@ export function WeddingBudgetMobilePage({
 
         {setupError ? <SetupNotice message={setupError} /> : null}
 
-        <BudgetItemForm weddingProjectId={weddingProjectId} />
+        <BudgetItemForm />
 
         <section className="space-y-3">
           {items.length > 0 ? (

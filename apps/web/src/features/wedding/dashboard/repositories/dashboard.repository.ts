@@ -6,14 +6,9 @@ import { getDday } from "@/features/wedding/shared/date/date-format";
 
 import type {
   DashboardPayment,
-  DashboardTask,
+  DashboardScheduleItem,
   WeddingDashboardData,
 } from "@/features/wedding/dashboard/types";
-
-type WeddingProjectRow = {
-  wedding_date: string | null;
-  venue_name: string | null;
-};
 
 type BudgetSummaryRow = {
   total_estimated_amount: string | null;
@@ -29,7 +24,7 @@ type UpcomingTaskRow = {
   id: string;
   title: string;
   category: string;
-  due_date: string | null;
+  scheduled_date: string | null;
 };
 
 type UpcomingPaymentRow = {
@@ -41,76 +36,40 @@ type UpcomingPaymentRow = {
   paid_amount: number;
 };
 
-type DashboardParams = {
-  householdId: string;
-  weddingProjectId: string;
-};
-
-export async function getWeddingDashboardData(
-  params: DashboardParams,
-): Promise<WeddingDashboardData> {
+export async function getWeddingDashboardData(): Promise<WeddingDashboardData> {
   const [
-    project,
     budgetSummary,
-    incompleteTaskCount,
+    upcomingScheduleItemCount,
     vendorCount,
     documentCount,
-    upcomingTasks,
+    upcomingScheduleItems,
     upcomingPayments,
   ] = await Promise.all([
-    getWeddingProject(params),
-    getBudgetSummary(params),
-    getIncompleteTaskCount(params),
-    getVendorCount(params),
-    getDocumentCount(params),
-    getUpcomingTasks(params),
-    getUpcomingPayments(params),
+    getBudgetSummary(),
+    getUpcomingScheduleItemCount(),
+    getVendorCount(),
+    getDocumentCount(),
+    getUpcomingScheduleItems(),
+    getUpcomingPayments(),
   ]);
 
   const totalContractedAmount = budgetSummary.totalContractedAmount;
   const totalPaidAmount = budgetSummary.totalPaidAmount;
 
   return {
-    weddingDate: project.weddingDate,
-    venueName: project.venueName,
-    dday: getDday(project.weddingDate),
     totalEstimatedAmount: budgetSummary.totalEstimatedAmount,
     totalContractedAmount,
     totalPaidAmount,
     remainingAmount: Math.max(totalContractedAmount - totalPaidAmount, 0),
-    incompleteTaskCount,
+    upcomingScheduleItemCount,
     vendorCount,
     documentCount,
-    upcomingTasks,
+    upcomingScheduleItems,
     upcomingPayments,
   };
 }
 
-async function getWeddingProject(params: DashboardParams) {
-  const result = await pool.query<WeddingProjectRow>(
-    `
-      select wedding_date, venue_name
-      from wedding_projects
-      where id = $1
-        and household_id = $2
-      limit 1
-    `,
-    [params.weddingProjectId, params.householdId],
-  );
-
-  const row = result.rows[0];
-
-  if (!row) {
-    throw new Error("Wedding project was not found for this household.");
-  }
-
-  return {
-    weddingDate: row.wedding_date,
-    venueName: row.venue_name,
-  };
-}
-
-async function getBudgetSummary(params: DashboardParams) {
+async function getBudgetSummary() {
   const result = await pool.query<BudgetSummaryRow>(
     `
       select
@@ -118,11 +77,7 @@ async function getBudgetSummary(params: DashboardParams) {
         coalesce(sum(wbi.contracted_amount), 0) as total_contracted_amount,
         coalesce(sum(wbi.paid_amount), 0) as total_paid_amount
       from wedding_budget_items wbi
-      join wedding_projects wp on wp.id = wbi.wedding_project_id
-      where wbi.wedding_project_id = $1
-        and wp.household_id = $2
     `,
-    [params.weddingProjectId, params.householdId],
   );
 
   const row = result.rows[0];
@@ -134,67 +89,57 @@ async function getBudgetSummary(params: DashboardParams) {
   };
 }
 
-async function getIncompleteTaskCount(params: DashboardParams) {
+async function getUpcomingScheduleItemCount() {
   const result = await pool.query<CountRow>(
     `
       select count(*) as count
-      from wedding_tasks wt
-      join wedding_projects wp on wp.id = wt.wedding_project_id
-      where wt.wedding_project_id = $1
-        and wp.household_id = $2
-        and wt.status <> 'done'
+      from wedding_schedule_items wsi
+      where wsi.scheduled_date is not null
+        and wsi.scheduled_date >= current_date
     `,
-    [params.weddingProjectId, params.householdId],
   );
 
   return Number(result.rows[0]?.count ?? 0);
 }
 
-async function getVendorCount(params: DashboardParams) {
+async function getVendorCount() {
   const result = await pool.query<CountRow>(
     `
       select count(*) as count
       from vendors
-      where household_id = $1
     `,
-    [params.householdId],
   );
 
   return Number(result.rows[0]?.count ?? 0);
 }
 
-async function getDocumentCount(params: DashboardParams) {
+async function getDocumentCount() {
   const result = await pool.query<CountRow>(
     `
       select count(*) as count
       from documents
-      where household_id = $1
     `,
-    [params.householdId],
   );
 
   return Number(result.rows[0]?.count ?? 0);
 }
 
-async function getUpcomingTasks(params: DashboardParams) {
+async function getUpcomingScheduleItems() {
   const result = await pool.query<UpcomingTaskRow>(
     `
-      select wt.id, wt.title, wt.category, wt.due_date
-      from wedding_tasks wt
-      join wedding_projects wp on wp.id = wt.wedding_project_id
-      where wt.wedding_project_id = $1
-        and wp.household_id = $2
-        and wt.status <> 'done'
-      order by wt.due_date nulls last, wt.created_at asc
+      select wsi.id, wsi.title, wsi.category, wsi.scheduled_date
+      from wedding_schedule_items wsi
+      where wsi.scheduled_date is not null
+        and wsi.scheduled_date >= current_date
+      order by wsi.scheduled_date asc, wsi.created_at asc
       limit 5
     `,
-    [params.weddingProjectId, params.householdId],
   );
 
-  return result.rows.map(mapUpcomingTaskRow);
+  return result.rows.map(mapUpcomingScheduleItemRow);
 }
 
-async function getUpcomingPayments(params: DashboardParams) {
+async function getUpcomingPayments() {
   const result = await pool.query<UpcomingPaymentRow>(
     `
       select
@@ -205,25 +150,24 @@ async function getUpcomingPayments(params: DashboardParams) {
         wbi.contracted_amount,
         wbi.paid_amount
       from wedding_budget_items wbi
-      join wedding_projects wp on wp.id = wbi.wedding_project_id
-      where wbi.wedding_project_id = $1
-        and wp.household_id = $2
-        and wbi.payment_due_date is not null
+      where wbi.payment_due_date is not null
       order by wbi.payment_due_date asc, wbi.created_at asc
       limit 5
     `,
-    [params.weddingProjectId, params.householdId],
   );
 
   return result.rows.map(mapUpcomingPaymentRow);
 }
 
-function mapUpcomingTaskRow(row: UpcomingTaskRow): DashboardTask {
+function mapUpcomingScheduleItemRow(
+  row: UpcomingTaskRow,
+): DashboardScheduleItem {
   return {
     id: row.id,
     title: row.title,
     category: row.category,
-    dueDate: row.due_date,
+    scheduledDate: row.scheduled_date,
+    dday: getDday(row.scheduled_date),
   };
 }
 

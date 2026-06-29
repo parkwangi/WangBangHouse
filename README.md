@@ -14,16 +14,17 @@ pnpm dev
 Start the local database:
 
 ```bash
+cp .env.example .env
 docker compose up -d
 ```
 
-Connection string for `apps/web/.env.local`:
+Create the app env file:
 
-```env
-DATABASE_URL="postgresql://wangbanghouse:wangbanghouse_dev_password@localhost:5432/wangbanghouse"
-DEV_HOUSEHOLD_ID=""
-DEV_WEDDING_PROJECT_ID=""
+```bash
+cp apps/web/.env.example apps/web/.env.local
 ```
+
+Use the same local PostgreSQL password in root `.env` and `apps/web/.env.local`.
 
 Open psql:
 
@@ -31,17 +32,18 @@ Open psql:
 docker exec -it wangbanghouse-postgres psql -U wangbanghouse -d wangbanghouse
 ```
 
+Check container health:
+
+```bash
+docker compose ps
+```
+
 Migration SQL files live in `database/migrations`.
 
-Apply migrations and seed the local development household/project:
+Apply migrations and prepare the local development database:
 
 ```bash
 pnpm db:setup
 ```
 
-This creates or updates `apps/web/.env.local` with:
-
-```env
-DEV_HOUSEHOLD_ID="00000000-0000-4000-8000-000000000002"
-DEV_WEDDING_PROJECT_ID="00000000-0000-4000-8000-000000000003"
-```
+This creates or updates `apps/web/.env.local` with the database connection.

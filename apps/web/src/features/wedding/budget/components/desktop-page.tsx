@@ -9,14 +9,12 @@ import type {
 type WeddingBudgetDesktopPageProps = {
   items: BudgetItem[];
   summary: BudgetSummary;
-  weddingProjectId: string | null;
   setupError: string | null;
 };
 
 export function WeddingBudgetDesktopPage({
   items,
   summary,
-  weddingProjectId,
   setupError,
 }: WeddingBudgetDesktopPageProps) {
   return (
@@ -33,7 +31,7 @@ export function WeddingBudgetDesktopPage({
 
         {setupError ? <SetupNotice message={setupError} /> : null}
 
-        <BudgetItemForm weddingProjectId={weddingProjectId} />
+        <BudgetItemForm />
 
         <section className="border-border overflow-hidden rounded-md border">
           <table className="w-full table-fixed text-sm">

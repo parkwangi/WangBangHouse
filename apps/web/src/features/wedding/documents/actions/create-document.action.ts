@@ -7,7 +7,6 @@ import {
   createDocumentSchema,
   type CreateDocumentInput,
 } from "@/features/wedding/documents/schemas/document.schema";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 
 import type { ActionResult } from "@/features/wedding/shared/actions/action-result";
 
@@ -25,12 +24,7 @@ export async function createDocumentAction(
   }
 
   try {
-    const householdId = await getCurrentHouseholdId();
-
-    await createDocument({
-      householdId,
-      ...parsed.data,
-    });
+    await createDocument(parsed.data);
 
     revalidatePath("/wedding/documents");
 

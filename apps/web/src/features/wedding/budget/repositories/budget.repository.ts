@@ -9,7 +9,6 @@ import type {
 
 type BudgetItemRow = {
   id: string;
-  wedding_project_id: string;
   vendor_id: string | null;
   category: string;
   title: string;
@@ -29,8 +28,6 @@ type BudgetSummaryRow = {
 };
 
 type CreateBudgetItemParams = {
-  householdId: string;
-  weddingProjectId: string;
   category: string;
   title: string;
   estimatedAmount: number;
@@ -40,32 +37,22 @@ type CreateBudgetItemParams = {
   memo?: string;
 };
 
-export async function getWeddingBudgetPageData(params: {
-  householdId: string;
-  weddingProjectId: string;
-}) {
+export async function getWeddingBudgetPageData() {
   const [items, summary] = await Promise.all([
-    getBudgetItems(params),
-    getBudgetSummary(params),
+    getBudgetItems(),
+    getBudgetSummary(),
   ]);
 
   return { items, summary };
 }
 
-export async function getBudgetItems(params: {
-  householdId: string;
-  weddingProjectId: string;
-}) {
+export async function getBudgetItems() {
   const result = await pool.query<BudgetItemRow>(
     `
       select wbi.*
       from wedding_budget_items wbi
-      join wedding_projects wp on wp.id = wbi.wedding_project_id
-      where wbi.wedding_project_id = $1
-        and wp.household_id = $2
       order by wbi.payment_due_date nulls last, wbi.created_at asc
     `,
-    [params.weddingProjectId, params.householdId],
   );
 
   return result.rows.map(mapBudgetItemRow);
@@ -75,7 +62,6 @@ export async function createBudgetItem(params: CreateBudgetItemParams) {
   const result = await pool.query<BudgetItemRow>(
     `
       insert into wedding_budget_items (
-        wedding_project_id,
         category,
         title,
         estimated_amount,
@@ -84,14 +70,10 @@ export async function createBudgetItem(params: CreateBudgetItemParams) {
         payment_due_date,
         memo
       )
-      select $1, $2, $3, $4, $5, $6, $7, $8
-      from wedding_projects wp
-      where wp.id = $1
-        and wp.household_id = $9
+      values ($1, $2, $3, $4, $5, $6, $7)
       returning *
     `,
     [
-      params.weddingProjectId,
       params.category,
       params.title,
       params.estimatedAmount,
@@ -99,23 +81,19 @@ export async function createBudgetItem(params: CreateBudgetItemParams) {
       params.paidAmount,
       params.paymentDueDate ?? null,
       params.memo ?? null,
-      params.householdId,
     ],
   );
 
   const item = result.rows[0];
 
   if (!item) {
-    throw new Error("Wedding project was not found for this household.");
+    throw new Error("Budget item was not created.");
   }
 
   return mapBudgetItemRow(item);
 }
 
-async function getBudgetSummary(params: {
-  householdId: string;
-  weddingProjectId: string;
-}): Promise<BudgetSummary> {
+async function getBudgetSummary(): Promise<BudgetSummary> {
   const result = await pool.query<BudgetSummaryRow>(
     `
       select
@@ -123,11 +101,7 @@ async function getBudgetSummary(params: {
         coalesce(sum(wbi.contracted_amount), 0) as total_contracted_amount,
         coalesce(sum(wbi.paid_amount), 0) as total_paid_amount
       from wedding_budget_items wbi
-      join wedding_projects wp on wp.id = wbi.wedding_project_id
-      where wbi.wedding_project_id = $1
-        and wp.household_id = $2
     `,
-    [params.weddingProjectId, params.householdId],
   );
 
   const row = result.rows[0];
@@ -145,7 +119,6 @@ async function getBudgetSummary(params: {
 function mapBudgetItemRow(row: BudgetItemRow): BudgetItem {
   return {
     id: row.id,
-    weddingProjectId: row.wedding_project_id,
     vendorId: row.vendor_id,
     category: row.category,
     title: row.title,

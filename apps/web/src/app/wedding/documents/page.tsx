@@ -2,7 +2,6 @@ import { DocumentsDesktopPage } from "@/features/wedding/documents/components/de
 import { DocumentsMobilePage } from "@/features/wedding/documents/components/mobile-page";
 import { getDocuments } from "@/features/wedding/documents/repositories/document.repository";
 import { getVendors } from "@/features/wedding/vendors/repositories/vendor.repository";
-import { getCurrentHouseholdId } from "@/server/auth/get-current-household";
 import { isMobileDevice } from "@/server/device/is-mobile-device";
 
 import type { DocumentMetadata } from "@/features/wedding/documents/types";
@@ -29,11 +28,7 @@ export default async function DocumentsPage() {
 
 async function getDocumentsData(): Promise<DocumentsData> {
   try {
-    const householdId = await getCurrentHouseholdId();
-    const [documents, vendors] = await Promise.all([
-      getDocuments({ householdId }),
-      getVendors({ householdId }),
-    ]);
+    const [documents, vendors] = await Promise.all([getDocuments(), getVendors()]);
 
     return {
       documents,

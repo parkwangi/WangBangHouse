@@ -1,8 +1,9 @@
-export type DashboardTask = {
+export type DashboardScheduleItem = {
   id: string;
   title: string;
   category: string;
-  dueDate: string | null;
+  scheduledDate: string | null;
+  dday: number | null;
 };
 
 export type DashboardPayment = {
@@ -15,16 +16,13 @@ export type DashboardPayment = {
 };
 
 export type WeddingDashboardData = {
-  weddingDate: string | null;
-  venueName: string | null;
-  dday: number | null;
   totalEstimatedAmount: number;
   totalContractedAmount: number;
   totalPaidAmount: number;
   remainingAmount: number;
-  incompleteTaskCount: number;
+  upcomingScheduleItemCount: number;
   vendorCount: number;
   documentCount: number;
-  upcomingTasks: DashboardTask[];
+  upcomingScheduleItems: DashboardScheduleItem[];
   upcomingPayments: DashboardPayment[];
 };

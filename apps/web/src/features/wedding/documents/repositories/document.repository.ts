@@ -6,14 +6,13 @@ import type { DocumentMetadata } from "@/features/wedding/documents/types";
 
 type DocumentRow = {
   id: string;
-  household_id: string;
   vendor_id: string | null;
   vendor_name: string | null;
   related_type: string;
   related_id: string | null;
   title: string;
   document_type: string;
-  storage_provider: "local" | "s3" | "r2" | "supabase";
+  storage_provider: "local" | "s3" | "r2";
   storage_path: string | null;
   original_file_name: string | null;
   mime_type: string | null;
@@ -24,7 +23,6 @@ type DocumentRow = {
 };
 
 type CreateDocumentParams = {
-  householdId: string;
   vendorId?: string;
   relatedType: string;
   relatedId?: string;
@@ -33,7 +31,7 @@ type CreateDocumentParams = {
   memo?: string;
 };
 
-export async function getDocuments(params: { householdId: string }) {
+export async function getDocuments() {
   const result = await pool.query<DocumentRow>(
     `
       select
@@ -41,10 +39,8 @@ export async function getDocuments(params: { householdId: string }) {
         v.name as vendor_name
       from documents d
       left join vendors v on v.id = d.vendor_id
-      where d.household_id = $1
       order by d.created_at desc
     `,
-    [params.householdId],
   );
 
   return result.rows.map(mapDocumentRow);
@@ -54,7 +50,6 @@ export async function createDocument(params: CreateDocumentParams) {
   const result = await pool.query<DocumentRow>(
     `
       insert into documents (
-        household_id,
         vendor_id,
         related_type,
         related_id,
@@ -62,13 +57,12 @@ export async function createDocument(params: CreateDocumentParams) {
         document_type,
         memo
       )
-      values ($1, $2, $3, $4, $5, $6, $7)
+      values ($1, $2, $3, $4, $5, $6)
       returning
         documents.*,
         null::text as vendor_name
     `,
     [
-      params.householdId,
       params.vendorId ?? null,
       params.relatedType,
       params.relatedId ?? null,
@@ -84,7 +78,6 @@ export async function createDocument(params: CreateDocumentParams) {
 function mapDocumentRow(row: DocumentRow): DocumentMetadata {
   return {
     id: row.id,
-    householdId: row.household_id,
     vendorId: row.vendor_id,
     vendorName: row.vendor_name,
     relatedType: row.related_type,
