@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@repo/api": "workspace:*",
+    "@repo/query-kit": "workspace:*",
     "@repo/ui": "workspace:*",
-    "bowser": "^2.14.1",
     "dayjs": "^1.11.21",
+    "ky": "^2.0.2",
     "lucide-react": "latest",
     "next": "latest",
     "pg": "^8.22.0",

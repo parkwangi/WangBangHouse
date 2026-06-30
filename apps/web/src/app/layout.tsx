@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
-import { AppSidebar, MobileNavigation } from "@/components/app-sidebar";
-import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { AppSidebar } from "@/components/app-sidebar";
 
 import "./globals.css";
 
@@ -9,17 +8,8 @@ export const metadata: Metadata = {
   title: "Wang Bang",
   description: "Wang Bang web application",
   applicationName: "Wang Bang",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Wang Bang",
-  },
-  formatDetection: {
-    telephone: false,
-  },
   icons: {
     icon: "/icon.svg",
-    apple: "/apple-icon.svg",
   },
 };
 
@@ -40,12 +30,8 @@ export default function RootLayout({
       <body className="bg-background text-foreground min-h-screen font-sans antialiased">
         <div className="flex min-h-screen">
           <AppSidebar />
-          <div className="min-w-0 flex-1 pb-16 md:pb-0">
-            <MobileNavigation />
-            {children}
-          </div>
+          <div className="min-w-0 flex-1">{children}</div>
         </div>
-        <ServiceWorkerRegistration />
       </body>
     </html>
   );

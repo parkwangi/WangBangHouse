@@ -32,15 +32,21 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.4.0
         version: 5.4.0(react-hook-form@7.80.0(react@19.2.7))
+      '@repo/api':
+        specifier: workspace:*
+        version: link:../../packages/api
+      '@repo/query-kit':
+        specifier: workspace:*
+        version: link:../../packages/query-kit
       '@repo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      bowser:
-        specifier: ^2.14.1
-        version: 2.14.1
       dayjs:
         specifier: ^1.11.21
         version: 1.11.21
+      ky:
+        specifier: ^2.0.2
+        version: 2.0.2
       lucide-react:
         specifier: latest
         version: 1.22.0(react@19.2.7)
@@ -103,6 +109,34 @@ importers:
         specifier: latest
         version: 6.0.3
 
+  packages/api:
+    dependencies:
+      dayjs:
+        specifier: ^1.11.21
+        version: 1.11.21
+      ky:
+        specifier: ^2.0.2
+        version: 2.0.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../configs/eslint-config
+      '@types/node':
+        specifier: latest
+        version: 26.0.1
+      eslint:
+        specifier: ^9.39.1
+        version: 9.39.4(jiti@2.7.0)
+      typescript:
+        specifier: latest
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@26.0.1)(vite@8.1.0(@types/node@26.0.1)(jiti@2.7.0))
+
   packages/configs/eslint-config:
     devDependencies:
       '@eslint/js':
@@ -153,6 +187,25 @@ importers:
       typescript-eslint:
         specifier: latest
         version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3)
+
+  packages/query-kit:
+    dependencies:
+      '@repo/api':
+        specifier: workspace:*
+        version: link:../api
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../configs/eslint-config
+      eslint:
+        specifier: ^9.39.1
+        version: 9.39.4(jiti@2.7.0)
+      typescript:
+        specifier: latest
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@26.0.1)(vite@8.1.0(@types/node@26.0.1)(jiti@2.7.0))
 
   packages/ui:
     dependencies:
@@ -1319,9 +1372,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  bowser@2.14.1:
-    resolution: {integrity: sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==}
-
   brace-expansion@1.1.15:
     resolution: {integrity: sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg==}
 
@@ -1970,6 +2020,10 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  ky@2.0.2:
+    resolution: {integrity: sha512-/GmXpo9F9W+f8n4Ivr2iH+7h7wL7jLbLKWkMlpflcCRb6kGjBfTlASEXaZ9qUgNTn4VgS0P2pwxxzQ4EM6Ulgg==}
+    engines: {node: '>=22'}
 
   language-subtag-registry@0.3.23:
     resolution: {integrity: sha512-0K65Lea881pHotoGEa5gDlMxt3pctLi2RplBb7Ezh4rRdLEOtgi7n4EwK9lamnUCkKBqaeKRVebTq6BAxSkpXQ==}
@@ -3863,8 +3917,6 @@ snapshots:
 
   baseline-browser-mapping@2.10.40: {}
 
-  bowser@2.14.1: {}
-
   brace-expansion@1.1.15:
     dependencies:
       balanced-match: 1.0.2
@@ -4735,6 +4787,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  ky@2.0.2: {}
 
   language-subtag-registry@0.3.23: {}
 

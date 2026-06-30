@@ -1,43 +1,36 @@
-import { WeddingPlanDesktopPage } from "@/features/wedding/plan/components/desktop-page";
-import { WeddingPlanMobilePage } from "@/features/wedding/plan/components/mobile-page";
-import { getWeddingScheduleItems } from "@/features/wedding/plan/repositories/schedule-item.repository";
-import { isMobileDevice } from "@/server/device/is-mobile-device";
+import { weddingPlanApi } from "@/api/server/plan";
+import { getApiErrorMessage } from "@/api/error";
+import { weddingPlanQueryOptions } from "@/queries/server/plan";
 
-import type { WeddingScheduleItem } from "@/features/wedding/plan/types";
+import { WeddingPlanCalendarPage } from "./_components/calendar-page";
 
-type WeddingPlanData = {
-  tasks: WeddingScheduleItem[];
-  setupError: string | null;
-};
+import { mapKoreanHolidays } from "./_utils/holidays";
+import { notFound } from "next/navigation";
 
 export default async function WeddingPlanPage() {
-  const [isMobile, data] = await Promise.all([
-    isMobileDevice(),
-    getWeddingPlanData(),
+  const currentYear = new Date().getFullYear();
+  const [planResult, holidaysResult] = await Promise.allSettled([
+    weddingPlanQueryOptions.data().queryFn(),
+    weddingPlanApi.getKoreanHolidays(currentYear),
   ]);
 
-  if (isMobile) {
-    return <WeddingPlanMobilePage {...data} />;
+  const errors: string[] = [];
+
+  if (planResult.status === "rejected") {
+    return notFound();
   }
 
-  return <WeddingPlanDesktopPage {...data} />;
-}
-
-async function getWeddingPlanData(): Promise<WeddingPlanData> {
-  try {
-    const tasks = await getWeddingScheduleItems();
-
-    return {
-      tasks,
-      setupError: null,
-    };
-  } catch (error) {
-    return {
-      tasks: [],
-      setupError:
-        error instanceof Error
-          ? error.message
-          : "Wedding Plan 데이터를 불러오지 못했습니다.",
-    };
+  if (holidaysResult.status === "rejected") {
+    return notFound();
   }
+
+  const holidays = mapKoreanHolidays(holidaysResult.value);
+
+  return (
+    <WeddingPlanCalendarPage
+      tasks={planResult.value.tasks}
+      holidays={holidays}
+      setupError={errors.length > 0 ? errors.join(" ") : null}
+    />
+  );
 }

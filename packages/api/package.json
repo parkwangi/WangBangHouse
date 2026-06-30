@@ -1,0 +1,43 @@
+{
+  "name": "@repo/api",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./common/action-result": "./src/common/action-result.ts",
+    "./wedding/shared/date": "./src/wedding/shared/date/index.ts",
+    "./wedding/shared/schemas/*": "./src/wedding/shared/schemas/*.ts",
+    "./wedding/budget": "./src/wedding/budget/index.ts",
+    "./wedding/budget/schema": "./src/wedding/budget/schema.ts",
+    "./wedding/budget/types": "./src/wedding/budget/types.ts",
+    "./wedding/dashboard": "./src/wedding/dashboard/index.ts",
+    "./wedding/dashboard/schema": "./src/wedding/dashboard/schema.ts",
+    "./wedding/dashboard/types": "./src/wedding/dashboard/types.ts",
+    "./wedding/documents": "./src/wedding/documents/index.ts",
+    "./wedding/documents/schema": "./src/wedding/documents/schema.ts",
+    "./wedding/documents/types": "./src/wedding/documents/types.ts",
+    "./wedding/plan": "./src/wedding/plan/index.ts",
+    "./wedding/plan/schema": "./src/wedding/plan/schema.ts",
+    "./wedding/plan/types": "./src/wedding/plan/types.ts",
+    "./wedding/vendors": "./src/wedding/vendors/index.ts",
+    "./wedding/vendors/schema": "./src/wedding/vendors/schema.ts",
+    "./wedding/vendors/types": "./src/wedding/vendors/types.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest --passWithNoTests"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.21",
+    "ky": "^2.0.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@types/node": "latest",
+    "eslint": "^9.39.1",
+    "typescript": "latest",
+    "vitest": "^4.1.9"
+  }
+}

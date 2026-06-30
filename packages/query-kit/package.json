@@ -1,0 +1,24 @@
+{
+  "name": "@repo/query-kit",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./queries/*": "./src/queries/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest --passWithNoTests"
+  },
+  "dependencies": {
+    "@repo/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "typescript": "latest",
+    "vitest": "^4.1.9"
+  }
+}

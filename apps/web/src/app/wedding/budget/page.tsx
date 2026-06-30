@@ -1,12 +1,8 @@
-import { WeddingBudgetDesktopPage } from "@/features/wedding/budget/components/desktop-page";
-import { WeddingBudgetMobilePage } from "@/features/wedding/budget/components/mobile-page";
-import { getWeddingBudgetPageData } from "@/features/wedding/budget/repositories/budget.repository";
-import { isMobileDevice } from "@/server/device/is-mobile-device";
+import { WeddingBudgetDesktopPage } from "@/app/wedding/budget/_components/desktop-page";
+import { getApiErrorMessage } from "@/api/error";
+import { weddingBudgetQueryOptions } from "@/queries/server/budget";
 
-import type {
-  BudgetItem,
-  BudgetSummary,
-} from "@/features/wedding/budget/types";
+import type { BudgetItem, BudgetSummary } from "@repo/api/wedding/budget/types";
 
 type WeddingBudgetData = {
   items: BudgetItem[];
@@ -22,21 +18,14 @@ const emptySummary: BudgetSummary = {
 };
 
 export default async function WeddingBudgetPage() {
-  const [isMobile, data] = await Promise.all([
-    isMobileDevice(),
-    getWeddingBudgetData(),
-  ]);
-
-  if (isMobile) {
-    return <WeddingBudgetMobilePage {...data} />;
-  }
+  const data = await getWeddingBudgetData();
 
   return <WeddingBudgetDesktopPage {...data} />;
 }
 
 async function getWeddingBudgetData(): Promise<WeddingBudgetData> {
   try {
-    const data = await getWeddingBudgetPageData();
+    const data = await weddingBudgetQueryOptions.pageData().queryFn();
 
     return {
       ...data,
@@ -46,10 +35,10 @@ async function getWeddingBudgetData(): Promise<WeddingBudgetData> {
     return {
       items: [],
       summary: emptySummary,
-      setupError:
-        error instanceof Error
-          ? error.message
-          : "Budget 데이터를 불러오지 못했습니다.",
+      setupError: await getApiErrorMessage(
+        error,
+        "Budget 데이터를 불러오지 못했습니다.",
+      ),
     };
   }
 }
